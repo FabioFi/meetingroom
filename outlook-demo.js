@@ -3,7 +3,8 @@ $(function() {
   // App configuration
   var authEndpoint = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?';
   var redirectUri = 'http://localhost:8080';
-  var scopes = 'openid profile User.Read Mail.Read';
+  var appId = 'your code here';
+  //var scopes = 'openid profile User.Read Mail.Read';
   var scopes = 'openid profile User.Read Mail.Read Calendars.Read';
 
   // Check for browser support for sessionStorage
