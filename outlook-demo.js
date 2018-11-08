@@ -1,11 +1,9 @@
 $(function() {
-
   // App configuration
   var authEndpoint = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?';
   var redirectUri = 'http://localhost:8080';
-  var appId = 'your code here';
-  //var scopes = 'openid profile User.Read Mail.Read';
-  var scopes = 'openid profile User.Read Mail.Read Calendars.Read';
+  var appId = 'df06e407-38d9-4f19-b557-c5c2232493aa';
+  var scopes = 'openid profile User.Read Mail.Read Calendars.Read Contacts.Read';
 
   // Check for browser support for sessionStorage
   if (typeof(Storage) === 'undefined') {
@@ -33,7 +31,6 @@ $(function() {
     // Hide everything
     $('.main-container .page').hide();
 
-    //var isAuthenticated = false;
     // Check for presence of access token
     var isAuthenticated = (sessionStorage.accessToken != null && sessionStorage.accessToken.length > 0);
     renderNav(isAuthenticated);
@@ -47,13 +44,11 @@ $(function() {
       },
 
       // Receive access token
-
       '#access_token': function() {
         handleTokenResponse(hash);
       },
 
       // Signout
-
       '#signout': function () {
         clearUserState();
 
@@ -62,12 +57,42 @@ $(function() {
       },
 
       // Error display
+      '#error': function () {
+        var errorresponse = parseHashParams(hash);
+        if (errorresponse.error === 'login_required' ||
+            errorresponse.error === 'interaction_required') {
+          // For these errors redirect the browser to the login
+          // page.
+          window.location = buildAuthUrl();
+        } else {
+          renderError(errorresponse.error, errorresponse.error_description);
+        }
+      },
 
       // Display inbox
-
       '#inbox': function () {
         if (isAuthenticated) {
           renderInbox();
+        } else {
+          // Redirect to home page
+          window.location.hash = '#';
+        }
+      },
+
+      // Display calendar
+      '#calendar': function () {
+        if (isAuthenticated) {
+          renderCalendar();
+        } else {
+          // Redirect to home page
+          window.location.hash = '#';
+        }
+      },
+
+      // Display contacts
+      '#contacts': function () {
+        if (isAuthenticated) {
+          renderContacts();
         } else {
           // Redirect to home page
           window.location.hash = '#';
@@ -86,33 +111,6 @@ $(function() {
       // Redirect to home page
       window.location.hash = '#';
     }
-
-    //'#error': function () {
-      //var errorresponse = parseHashParams(hash);
-      //renderError(errorresponse.error, errorresponse.error_description);
-    //},
-    '#error': function () {
-      var errorresponse = parseHashParams(hash);
-      if (errorresponse.error === 'login_required' ||
-          errorresponse.error === 'interaction_required') {
-        // For these errors redirect the browser to the login
-        // page.
-        window.location = buildAuthUrl();
-      } else {
-        renderError(errorresponse.error, errorresponse.error_description);
-      }
-    },
-
-    // Display calendar ???
-    '#calendar': function () {
-      if (isAuthenticated) {
-        renderCalendar();
-      } else {
-        // Redirect to home page
-        window.location.hash = '#';
-      }
-    },
-
   }
 
   function setActiveNav(navId) {
@@ -126,60 +124,6 @@ $(function() {
     } else {
       $('.authed-nav').hide();
     }
-  }
-
-  //renderCalendar ???
-  function renderCalendar() {
-    setActiveNav('#calendar-nav');
-    $('#calendar-status').text('Loading...');
-    $('#event-list').empty();
-    $('#calendar').show();
-
-    getUserEvents(function(events, error){
-      if (error) {
-        renderError('getUserEvents failed', error);
-      } else {
-        $('#calendar-status').text('Here are the 10 most recently created events on your calendar.');
-        var templateSource = $('#event-list-template').html();
-        var template = Handlebars.compile(templateSource);
-
-        var eventList = template({events: events});
-        $('#event-list').append(eventList);
-      }
-    });
-  }
-
-  //getUserContacts ???
-  function getUserContacts(callback) {
-    getAccessToken(function(accessToken) {
-      if (accessToken) {
-        // Create a Graph client
-        var client = MicrosoftGraph.Client.init({
-          authProvider: (done) => {
-            // Just return the token
-            done(null, accessToken);
-          }
-        });
-
-        // Get the first 10 contacts in alphabetical order
-        // by given name
-        client
-          .api('/me/contacts')
-          .top(10)
-          .select('givenName,surname,emailAddresses')
-          .orderby('givenName ASC')
-          .get((err, res) => {
-            if (err) {
-              callback(null, err);
-            } else {
-              callback(res.value);
-            }
-          });
-      } else {
-        var error = { responseText: 'Could not retrieve access token' };
-        callback(null, error);
-      }
-    });
   }
 
   function renderTokens() {
@@ -204,10 +148,10 @@ $(function() {
   }
 
   function renderWelcome(isAuthed) {
+    setActiveNav('#home-nav');
     if (isAuthed) {
       $('#username').text(sessionStorage.userDisplayName);
       $('#logged-in-welcome').show();
-      setActiveNav('#home-nav');
     } else {
       $('#connect-button').attr('href', buildAuthUrl());
       $('#signin-prompt').show();
@@ -221,7 +165,6 @@ $(function() {
     $('#inbox').show();
 
     getUserInboxMessages(function(messages, error){
-      //$('#inbox-status').text(JSON.stringify(messages));
       if (error) {
         renderError('getUserInboxMessages failed', error);
       } else {
@@ -231,6 +174,46 @@ $(function() {
 
         var msgList = template({messages: messages});
         $('#message-list').append(msgList);
+      }
+    });
+  }
+
+  function renderCalendar() {
+    setActiveNav('#calendar-nav');
+    $('#calendar-status').text('Loading...');
+    $('#event-list').empty();
+    $('#calendar').show();
+
+    getUserEvents(function(events, error){
+      if (error) {
+        renderError('getUserEvents failed', error);
+      } else {
+        $('#calendar-status').text('Here are the 10 most recently created events on your calendar.');
+        var templateSource = $('#event-list-template').html();
+        var template = Handlebars.compile(templateSource);
+
+        var eventList = template({events: events});
+        $('#event-list').append(eventList);
+      }
+    });
+  }
+
+  function renderContacts() {
+    setActiveNav('#contacts-nav');
+    $('#contacts-status').text('Loading...');
+    $('#contact-list').empty();
+    $('#contacts').show();
+
+    getUserContacts(function(contacts, error){
+      if (error) {
+        renderError('getUserContacts failed', error);
+      } else {
+        $('#contacts-status').text('Here are your first 10 contacts.');
+        var templateSource = $('#contact-list-template').html();
+        var template = Handlebars.compile(templateSource);
+
+        var contactList = template({contacts: contacts});
+        $('#contact-list').append(contactList);
       }
     });
   }
@@ -256,7 +239,6 @@ $(function() {
   }
 
   function handleTokenResponse(hash) {
-
     // If this was a silent request remove the iframe
     $('#auth-iframe').remove();
 
@@ -288,8 +270,6 @@ $(function() {
 
     sessionStorage.idToken = tokenresponse.id_token;
 
-    // Redirect to home page
-    //window.location.hash = '#';
     validateIdToken(function(isValid) {
       if (isValid) {
         // Re-render token to handle refresh
@@ -404,6 +384,118 @@ $(function() {
     }
   }
 
+  // OUTLOOK API FUNCTIONS =======================
+
+  function getUserInboxMessages(callback) {
+    getAccessToken(function(accessToken) {
+      if (accessToken) {
+        // Create a Graph client
+        var client = MicrosoftGraph.Client.init({
+          authProvider: (done) => {
+            // Just return the token
+            done(null, accessToken);
+          }
+        });
+
+        // Get the 10 newest messages
+        client
+          .api('/me/mailfolders/inbox/messages')
+          .top(10)
+          .select('subject,from,receivedDateTime,bodyPreview')
+          .orderby('receivedDateTime DESC')
+          .get((err, res) => {
+            if (err) {
+              callback(null, err);
+            } else {
+              callback(res.value);
+            }
+          });
+      } else {
+        var error = { responseText: 'Could not retrieve access token' };
+        callback(null, error);
+      }
+    });
+  }
+
+  function getUserEvents(callback) {
+    getAccessToken(function(accessToken) {
+      if (accessToken) {
+        // Create a Graph client
+        var client = MicrosoftGraph.Client.init({
+          authProvider: (done) => {
+            // Just return the token
+            done(null, accessToken);
+          }
+        });
+
+        // Get the 10 newest events
+        client
+          .api('/me/events')
+          .top(10)
+          .select('subject,start,end,createdDateTime')
+          .orderby('createdDateTime DESC')
+          .get((err, res) => {
+            if (err) {
+              callback(null, err);
+            } else {
+              callback(res.value);
+            }
+          });
+      } else {
+        var error = { responseText: 'Could not retrieve access token' };
+        callback(null, error);
+      }
+    });
+  }
+
+  function getUserContacts(callback) {
+    getAccessToken(function(accessToken) {
+      if (accessToken) {
+        // Create a Graph client
+        var client = MicrosoftGraph.Client.init({
+          authProvider: (done) => {
+            // Just return the token
+            done(null, accessToken);
+          }
+        });
+
+        // Get the first 10 contacts in alphabetical order
+        // by given name
+        client
+          .api('/me/contacts')
+          .top(10)
+          .select('givenName,surname,emailAddresses')
+          .orderby('givenName ASC')
+          .get((err, res) => {
+            if (err) {
+              callback(null, err);
+            } else {
+              callback(res.value);
+            }
+          });
+      } else {
+        var error = { responseText: 'Could not retrieve access token' };
+        callback(null, error);
+      }
+    });
+  }
+
+  // HELPER FUNCTIONS ============================
+
+  function guid() {
+    var buf = new Uint16Array(8);
+    cryptObj.getRandomValues(buf);
+    function s4(num) {
+      var ret = num.toString(16);
+      while (ret.length < 4) {
+        ret = '0' + ret;
+      }
+      return ret;
+    }
+    return s4(buf[0]) + s4(buf[1]) + '-' + s4(buf[2]) + '-' + s4(buf[3]) + '-' +
+      s4(buf[4]) + '-' + s4(buf[5]) + s4(buf[6]) + s4(buf[7]);
+  }
+
   function parseHashParams(hash) {
     var params = hash.slice(1).split('&');
 
@@ -438,54 +530,4 @@ $(function() {
     var date = new Date(datetime);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   });
-
-  // OUTLOOK API FUNCTIONS =======================
-
-  function getUserInboxMessages(callback) {
-    getAccessToken(function(accessToken) {
-      if (accessToken) {
-        // Create a Graph client
-        var client = MicrosoftGraph.Client.init({
-          authProvider: (done) => {
-            // Just return the token
-            done(null, accessToken);
-          }
-        });
-
-        // Get the 10 newest messages
-        client
-          .api('/me/mailfolders/inbox/messages')
-          .top(10)
-          .select('subject,from,receivedDateTime,bodyPreview')
-          .orderby('receivedDateTime DESC')
-          .get((err, res) => {
-            if (err) {
-              callback(null, err);
-            } else {
-              callback(res.value);
-            }
-          });
-      } else {
-        var error = { responseText: 'Could not retrieve access token' };
-        callback(null, error);
-      }
-    });
-  }
-
-  // HELPER FUNCTIONS ============================
-
-  function guid() {
-    var buf = new Uint16Array(8);
-    cryptObj.getRandomValues(buf);
-    function s4(num) {
-      var ret = num.toString(16);
-      while (ret.length < 4) {
-        ret = '0' + ret;
-      }
-      return ret;
-    }
-    return s4(buf[0]) + s4(buf[1]) + '-' + s4(buf[2]) + '-' + s4(buf[3]) + '-' +
-      s4(buf[4]) + '-' + s4(buf[5]) + s4(buf[6]) + s4(buf[7]);
-  }
-
 });

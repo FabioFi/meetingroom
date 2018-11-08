@@ -32,6 +32,7 @@
         <ul class="nav navbar-nav authed-nav">
           <li id='home-nav'><a href="#">Home</a></li>
           <li id='inbox-nav'><a href="#inbox">Inbox</a></li>
+          <li id='calendar-nav'><a href="#calendar">Calendar</a></li>
           <li id='contacts-nav'><a href="#contacts">Contacts</a></li>
         </ul>
         <ul class="nav navbar-nav navbar-right authed-nav">
@@ -49,22 +50,20 @@
         <a class="btn btn-lg btn-primary" href="#" role="button" id="connect-button">Connect to Outlook</a>
       </p>
     </div>
-    <!-- logged in user welcome -->
 
+    <!-- logged in user welcome -->
     <div id="logged-in-welcome" class="jumbotron page">
       <h1>Outlook SPA Demo</h1>
       <p>Welcome <span id="username"></span>! Please use the nav menu to access your Outlook data.</p>
     </div>
 
     <!-- unsupported browser message -->
-
     <div id="unsupported" class="jumbotron page">
       <h1>Oops....</h1>
       <p>This page requires browser support for <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API">session storage</a> and <a href="https://developer.mozilla.org/en-US/docs/Web/API/RandomSource/getRandomValues"><code>crypto.getRandomValues</code></a>. Unfortunately, your browser does not support one or both features. Please visit this page using a different browser.</p>
     </div>
 
     <!-- error message -->
-
     <div id="error-display" class="page panel panel-danger">
       <div class="panel-heading">
         <h3 class="panel-title" id="error-name"></h3>
@@ -75,7 +74,6 @@
     </div>
 
     <!-- inbox display -->
-
     <div id="inbox" class="page panel panel-default">
       <div class="panel-heading">
         <h1 class="panel-title">Inbox</h1>
@@ -86,16 +84,14 @@
       </div>
     </div>
 
-    <!-- token display -->
-
-    <div id="token-display" class="page panel panel-default">
-      <div class="panel-body">
-        <h4>Access Token:</h4>
-        <pre><code id="token"></code></pre>
-        <h4>Expires:</h4>
-        <p id="expires-display"></p>
-        <h4>ID Token:</h4>
-        <pre><code id="id-token"></code></pre>
+    <!-- calendar display -->
+    <div id="calendar" class="page panel panel-default">
+      <div class="panel-heading">
+        <h1 class="panel-title">Calendar</h1>
+      </div>
+      <div id="calendar-status" class="panel-body">
+      </div>
+      <div class="list-group" id="event-list">
       </div>
     </div>
 
@@ -110,6 +106,17 @@
       </div>
     </div>
 
+    <!-- token display -->
+    <div id="token-display" class="page panel panel-default">
+      <div class="panel-body">
+        <h4>Access Token:</h4>
+        <pre><code id="token"></code></pre>
+        <h4>Expires:</h4>
+        <p id="expires-display"></p>
+        <h4>ID Token:</h4>
+        <pre><code id="id-token"></code></pre>
+      </div>
+    </div>
   </div>
 
   <!-- Handlebars template for message list -->
@@ -124,7 +131,18 @@
     {{/each}}
   </script>
 
-<!-- Handlebars template for contact list ??? -->
+  <!-- Handlebars template for event list -->
+  <script id="event-list-template" type="text/x-handlebars-template">
+    {{#each events}}
+    <div class="list-group-item">
+      <h4 id="event-subject" class="list-group-item-heading">{{this.subject}}</h4>
+      <p id="event-start" class="list-group-item-heading">Start: {{formatDate this.start.dateTime}}</p>
+      <p id="event-end" class="list-group-item-heading">End: {{formatDate this.end.dateTime}}</p>
+    </div>
+    {{/each}}
+  </script>
+
+  <!-- Handlebars template for contact list ??? -->
   <script id="contact-list-template" type="text/x-handlebars-template">
     {{#each contacts}}
     <div class="list-group-item">
@@ -133,6 +151,5 @@
     </div>
     {{/each}}
   </script>
-
 </body>
 </html>
